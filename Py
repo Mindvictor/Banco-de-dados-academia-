@@ -1,0 +1,373 @@
+#python no Spyder
+
+import mysql.connector
+from mysql.connector.conversion import MySQLConverter
+from decimal import Decimal
+
+# ======================================
+# CONVERSOR AUTOMÁTICO DECIMAL → FLOAT
+# ======================================
+
+class FloatConverter(MySQLConverter):
+    def _float(self, value, dsc=None):
+        return float(value)
+
+    def _decimal(self, value, dsc=None):
+        return float(value)
+
+
+# ======================================
+# CONEXÃO COM O BANCO DE DADOS
+# ======================================
+
+def conectar():
+    conn = mysql.connector.connect(
+        host="localhost",
+        user="root",
+        password="790126",
+        database="gymmm"
+    )
+    conn.converter_class = FloatConverter
+    return conn
+
+
+# ======================================
+# CADASTRAR ALUNO
+# ======================================
+
+def cadastrar_aluno():
+    print("\n--- CADASTRAR ALUNO ---")
+    nome = input("Nome: ")
+    peso = float(input("Peso (kg): "))
+    altura = float(input("Altura (m): "))
+    treino = int(input("ID do treino: "))
+    plano = int(input("ID do plano: "))
+
+    con = conectar()
+    cursor = con.cursor()
+
+    sql = """
+    INSERT INTO tbl_aluno (nome_aluno, peso_aluno, altura_aluno, fk_alu_tre, fk_alu_plano)
+    VALUES (%s, %s, %s, %s, %s)
+    """
+    cursor.execute(sql, (nome, peso, altura, treino, plano))
+    con.commit()
+    con.close()
+
+    print("\nAluno cadastrado com sucesso!\n")
+
+
+# ======================================
+# LISTAR ALUNOS (Simples)
+# ======================================
+
+def listar_alunos():
+    con = conectar()
+    cursor = con.cursor()
+
+    cursor.execute("SELECT id_aluno, nome_aluno, peso_aluno, altura_aluno FROM tbl_aluno")
+
+    print("\nID | Nome | Peso | Altura")
+    print("------------------------------")
+
+    for id_aluno, nome, peso, altura in cursor.fetchall():
+        print(f"{id_aluno} | {nome} | {peso:.2f} kg | {altura:.2f} m")
+
+    con.close()
+    print()
+
+
+# ======================================
+# LISTAR ALUNO + TREINO
+# ======================================
+
+def listar_aluno_treino():
+    con = conectar()
+    cursor = con.cursor()
+
+    sql = """
+    SELECT a.nome_aluno, a.peso_aluno, a.altura_aluno, t.nome_treino
+    FROM tbl_aluno a
+    INNER JOIN tbl_treinos t ON a.fk_alu_tre = t.id_treino
+    """
+
+    cursor.execute(sql)
+
+    print("\nNome | Peso | Altura | Treino")
+    print("----------------------------------")
+
+    for nome, peso, altura, treino in cursor.fetchall():
+        print(f"{nome} | {peso:.2f} kg | {altura:.2f} m | {treino}")
+
+    con.close()
+    print()
+
+
+# ======================================
+# LISTAR COMPLETO: ALUNO + TREINO + PLANO + PREÇO
+
+# ======================================
+
+def listar_completo():
+    con = conectar()
+    cursor = con.cursor()
+
+    sql = """
+    SELECT a.nome_aluno,
+           a.peso_aluno,
+           a.altura_aluno,
+           t.nome_treino,
+           p.nome_plano,
+           pr.valor_plano
+    FROM tbl_aluno a
+    INNER JOIN tbl_treinos t ON a.fk_alu_tre = t.id_treino
+    INNER JOIN tbl_planos p ON a.fk_alu_plano = p.id_plano
+    INNER JOIN tbl_precos pr ON pr.fk_prec_plan = p.id_plano
+    """
+
+    cursor.execute(sql)
+
+    print("\nNome | Peso | Altura | Treino | Plano | Preço")
+    print("-----------------------------------------------------------")
+
+    for nome, peso, altura, treino, plano, preco in cursor.fetchall():
+        print(f"{nome} | {peso:.2f} kg | {altura:.2f} m | {treino} | {plano} | R${preco:.2f}")
+
+    con.close()
+    print()
+
+
+# ======================================
+# ATUALIZAÇÕES
+# ======================================
+
+def atualizar_nome():
+    id_aluno = int(input("ID do aluno: "))
+    novo_nome = input("Novo nome: ")
+
+    con = conectar()
+    cursor = con.cursor()
+
+    sql = "UPDATE tbl_aluno SET nome_aluno = %s WHERE id_aluno = %s"
+    cursor.execute(sql, (novo_nome, id_aluno))
+    con.commit()
+    con.close()
+
+    print("\nNome atualizado!\n")
+
+
+def atualizar_peso():
+    id_aluno = int(input("ID do aluno: "))
+    novo_peso = float(input("Novo peso: "))
+
+    con = conectar()
+    cursor = con.cursor()
+
+    sql = "UPDATE tbl_aluno SET peso_aluno = %s WHERE id_aluno = %s"
+    cursor.execute(sql, (novo_peso, id_aluno))
+    con.commit()
+    con.close()
+
+    print("\nPeso atualizado!\n")
+
+
+def atualizar_altura():
+    id_aluno = int(input("ID do aluno: "))
+    nova_altura = float(input("Nova altura: "))
+
+    con = conectar()
+    cursor = con.cursor()
+
+    sql = "UPDATE tbl_aluno SET altura_aluno = %s WHERE id_aluno = %s"
+    cursor.execute(sql, (nova_altura, id_aluno))
+    con.commit()
+    con.close()
+
+    print("\nAltura atualizada!\n")
+
+
+def atualizar_treino():
+    id_aluno = int(input("ID do aluno: "))
+    novo_treino = int(input("Novo ID do treino: "))
+
+    con = conectar()
+    cursor = con.cursor()
+
+    sql = "UPDATE tbl_aluno SET fk_alu_tre = %s WHERE id_aluno = %s"
+    cursor.execute(sql, (novo_treino, id_aluno))
+    con.commit()
+    con.close()
+
+    print("\nTreino atualizado!\n")
+
+
+def atualizar_plano():
+    id_aluno = int(input("ID do aluno: "))
+    novo_plano = int(input("Novo ID do plano: "))
+
+    con = conectar()
+    cursor = con.cursor()
+
+    sql = "UPDATE tbl_aluno SET fk_alu_plano = %s WHERE id_aluno = %s"
+    cursor.execute(sql, (novo_plano, id_aluno))
+    con.commit()
+    con.close()
+
+    print("\nPlano atualizado!\n")
+
+
+# ======================================
+# EXCLUIR
+# ======================================
+
+def excluir_aluno():
+    id_aluno = int(input("ID do aluno para excluir: "))
+
+    con = conectar()
+    cursor = con.cursor()
+
+    sql = "DELETE FROM tbl_aluno WHERE id_aluno = %s"
+    cursor.execute(sql, (id_aluno,))
+    con.commit()
+    con.close()
+
+    print("\nAluno excluído!\n")
+
+
+# ======================================
+# MENU
+# ======================================
+
+def menu():
+    while True:
+        print("""
+============== MENU ==============
+1 - Cadastrar aluno
+2 - Listar alunos
+3 - Listar aluno + treino
+4 - Listar aluno + treino + plano + preço
+5 - Atualizar nome
+6 - Atualizar peso
+7 - Atualizar altura
+8 - Atualizar treino
+9 - Atualizar plano
+10 - Excluir aluno
+11 - Sair
+""")
+
+        opc = input("Escolha: ")
+
+        if opc == "1":
+            cadastrar_aluno()
+        elif opc == "2":
+            listar_alunos()
+        elif opc == "3":
+            listar_aluno_treino()
+        elif opc == "4":
+            listar_completo()
+        elif opc == "5":
+            atualizar_nome()
+        elif opc == "6":
+            atualizar_peso()
+        elif opc == "7":
+            atualizar_altura()
+        elif opc == "8":
+            atualizar_treino()
+        elif opc == "9":
+            atualizar_plano()
+        elif opc == "10":
+            excluir_aluno()
+  elif opc == "11":
+            print("Encerrando...")
+            break
+        else:
+            print("Opção inválida!\n")
+
+
+# ======================================
+# EXECUTAR O PROGRAMA
+# ======================================
+
+menu()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#################################################
+
+
+#BANCO DE DADOS MYSQL
+
+/*CREATE DATABASE gymmm;*/
+use gymmm;
+/*CREATE TABLE tbl_aluno (
+id_aluno INT AUTO_INCREMENT PRIMARY KEY,
+nome_aluno VARCHAR (1000) NOT NULL,
+peso_aluno DECIMAL (10, 2) NOT NULL,
+altura_aluno DECIMAL (10, 2) NOT NULL, 
+fk_alu_tre INT );
+
+CREATE TABLE tbl_treinos (
+id_treino INT AUTO_INCREMENT PRIMARY KEY,
+nome_treino VARCHAR (1000) NOT NULL );
+
+CREATE TABLE tbl_precos (
+id_preco INT AUTO_INCREMENT PRIMARY KEY,
+valor_plano DECIMAL (10, 2) NOT NULL,
+fk_prec_plan INT );
+
+
+
+CREATE TABLE tbl_planos (
+id_plano INT AUTO_INCREMENT PRIMARY KEY,
+nome_plano VARCHAR (1000) NOT NULL,
+plano_ativo BOOL NOT NULL );
+
+
+ALTER TABLE tbl_aluno ADD CONSTRAINT FOREIGN KEY (fk_alu_tre)
+REFERENCES tbl_treinos  (id_treino);
+
+ALTER TABLE tbl_precos ADD CONSTRAINT FOREIGN KEY (fk_prec_plan) 
+REFERENCES tbl_planos (id_plano);
+
+INSERT INTO tbl_treinos (nome_treino) VALUES
+('Peito'), ('Costas'), ('Ombros'),
+('Inferiores'), ('Braços');
+
+
+
+INSERT INTO tbl_planos (nome_plano, plano_ativo)
+VALUES 
+('Plano Bronze',  1),
+('Plano Prata', 1),	
+('Plano Ouro',  1);
+
+INSERT INTO tbl_precos (valor_plano, fk_prec_plan)
+VALUES
+('70.00', 1),
+('80.00', 2),
+('90.00', 3);
+
+ALTER TABLE tbl_aluno 
+ADD fk_alu_plano INT;
+
+ALTER TABLE tbl_aluno 
+ADD CONSTRAINT fk_alu_plano FOREIGN KEY (fk_alu_plano)
+REFERENCES tbl_planos(id_plano);*/
+
+/*SET SQL_SAFE_UPDATES = 0;*/
+
+  
